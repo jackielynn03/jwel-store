@@ -2,32 +2,50 @@ require('dotenv').config();
 const express = require('express');
 const cookieParser = require('cookie-parser');
 const cors = require('cors');
-const helmet = require('helmet');
+const helmet = require('helmet'); 
 
 const app = express();
 
-// Middleware
-app.use(express.json());
-app.use(cookieParser());
+// ==========================================
+// 1. GLOBAL MIDDLEWARE (Must be at the top)
+// ==========================================
+
+// Secure HTTP headers
+app.use(helmet({
+  crossOriginResourcePolicy: false, // Prevents blocking your own uploaded images
+}));
+
+// Dynamic CORS from Environment Variable
+const frontendOrigin = process.env.FRONTEND_URL || 'http://localhost:5173';
 app.use(cors({
-  origin: 'http://localhost:5173', // Adjust if your React port is different
+  origin: frontendOrigin,
   credentials: true 
 }));
 
-// Routes
-const authRoutes = require('./routes/authRoutes');
+// Body parsing and cookies
+app.use(express.json());
+app.use(cookieParser());
 
-// Mount routes
+
+// ==========================================
+// 2. MOUNT ROUTES
+// ==========================================
+
+const authRoutes = require('./routes/authRoutes');
 app.use('/api/auth', authRoutes);
 
 const itemRoutes = require('./routes/itemRoutes');
-
-// Mount item routes
 app.use('/api/items', itemRoutes);
+
+
+// ==========================================
+// 3. STATIC FILES & ERROR HANDLING
+// ==========================================
 
 // Make the uploads folder accessible to the browser
 app.use('/uploads', express.static('uploads'));
 
+// Global JSON Error Handler
 app.use((err, req, res, next) => {
   console.error("Global Error Handler caught:", err);
 
@@ -44,21 +62,8 @@ app.use((err, req, res, next) => {
   });
 });
 
-// 2. Use Helmet to secure HTTP headers
-app.use(helmet({
-  crossOriginResourcePolicy: false, // Prevents blocking your own images
-}));
-
-app.use(express.json());
-app.use(cookieParser());
-
-// 3. Dynamic CORS from Environment Variable
-const frontendOrigin = process.env.FRONTEND_URL || 'http://localhost:5173';
-app.use(cors({
-  origin: frontendOrigin,
-  credentials: true 
-}));
-
-// Start Server
+// ==========================================
+// 4. START SERVER
+// ==========================================
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => console.log(`Server running on port ${PORT}`));

@@ -30,9 +30,10 @@ export default function CategoryView() {
     const fetchCategoryProducts = async () => {
       setLoading(true);
       try {
-        const response = await axiosClient.get('/items');
+        // FIX: Added ?limit=1000 to fetch full inventory for client-side filtering
+        const response = await axiosClient.get('/items?limit=1000');
         const safeData = Array.isArray(response.data) ? response.data : (response.data?.data || []);
-        const filtered = response.data.data.filter(item => item.category === categoryName);
+        const filtered = safeData.filter(item => item.category === categoryName);
         setProducts(filtered);
       } catch (error) {
         console.error("Failed to fetch products", error);

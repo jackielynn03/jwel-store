@@ -11,8 +11,8 @@ export default function ListingManagement() {
   useEffect(() => {
     const fetchListings = async () => {
       try {
-        const response = await axiosClient.get('/items');
-        // Bulletproof check: Prevents the white screen crash
+        // FIX: Added ?limit=1000 to fetch the full inventory for client-side search
+        const response = await axiosClient.get('/items?limit=1000');
         const safeData = Array.isArray(response.data) ? response.data : (response.data?.data || []);
         setListings(safeData);
       } catch (error) {
@@ -70,10 +70,8 @@ export default function ListingManagement() {
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-6">
             {filteredListings.map((item) => (
-              // FIX: Cleaned up key to just use item.id
               <div key={item.id} className="group bg-white border border-gray-100 p-4 shadow-sm hover:shadow-md transition-all relative block">
                 
-                {/* FIX: Removed ${item.category} from the URL path */}
                 <Link 
                   to={`/admin/edit-item/${item.id}`} 
                   className="absolute top-6 right-6 bg-white/90 p-2 shadow-md hover:bg-black hover:text-white transition-colors z-20 text-gray-600 rounded-full"
@@ -82,23 +80,18 @@ export default function ListingManagement() {
                   <Pencil className="w-3.5 h-3.5" />
                 </Link>
 
-                {/* FIX: Removed ${item.category} from the URL path */}
                 <Link to={`/admin/listings/${item.id}`} className="cursor-pointer block">
                   <div className="aspect-square bg-gray-50 mb-4 overflow-hidden flex items-center justify-center relative">
-                    
-                    {/* FIX: Changed item.image to item.main_image to match new database column */}
                     <img 
                       src={`${BASE_URL}${item.main_image}`} 
                       alt={item.title} 
                       className="w-full h-full object-cover mix-blend-multiply group-hover:scale-105 transition-transform duration-500" 
                     />
-
                     <span className="absolute top-2 left-2 bg-white/90 text-[9px] font-bold px-2 py-1 tracking-widest uppercase text-black">
                       {item.category}
                     </span>
                   </div>
                   <div>
-                    {/* FIX: Changed item.name to item.title */}
                     <h3 className="text-sm font-semibold text-black truncate mb-1 group-hover:text-gray-600 transition-colors">
                       {item.title}
                     </h3>
