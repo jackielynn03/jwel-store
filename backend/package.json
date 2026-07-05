@@ -1,0 +1,12 @@
+{
+  "name": "aurora-backend",
+  "version": "1.0.0",
+  "type": "commonjs",
+  "dependencies": {
+    "bcryptjs": "^3.0.3",
+    "express-rate-limit": "^8.5.2",
+    "helmet": "^8.2.0",
+    "multer": "^2.2.0",
+    "zod": "^4.4.3"
+  }
+}
