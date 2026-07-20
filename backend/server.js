@@ -3,6 +3,7 @@ const express = require('express');
 const cookieParser = require('cookie-parser');
 const cors = require('cors');
 const helmet = require('helmet'); 
+const rateLimit = require('express-rate-limit');
 
 const app = express();
 
@@ -61,6 +62,16 @@ app.use((err, req, res, next) => {
     error: process.env.NODE_ENV === 'development' ? err.stack : {}
   });
 });
+
+// General API rate limiter
+const apiLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 200, // Limit each IP to 200 requests per window
+  message: { message: 'Too many requests from this IP, please try again later' }
+});
+
+// Apply to all /api routes
+app.use('/api', apiLimiter);
 
 // ==========================================
 // 4. START SERVER
