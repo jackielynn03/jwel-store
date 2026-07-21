@@ -3,6 +3,13 @@ import { Link, useNavigate } from 'react-router-dom';
 import { ArrowLeft, Upload, X, Loader2, Check } from 'lucide-react';
 import axiosClient from '../../api/axiosClient';
 
+// NEW: Exact mapping based on your requirements
+const TYPE_COLORS = {
+  'Du long': ['Aqua', 'Đỏ', 'Tím'],
+  'Đông linh': ['Hẹ', 'Đũa'],
+  'Mã não': ['Vàng', 'Trắng', 'Xanh thiên thanh', 'Xanh tiffany', 'Hồng bưởi', 'Xanh hồng', 'Trắng hồng', 'Xanh mạ', 'Xanh lá']
+};
+
 export default function ListAnItem() {
   const navigate = useNavigate();
   const [error, setError] = useState('');
@@ -20,11 +27,13 @@ export default function ListAnItem() {
   const [mainImage, setMainImage] = useState(null);
   const [additionalImages, setAdditionalImages] = useState([]);
 
-  const needsColor = ['Du long', 'Đông linh', 'Mã não'].includes(type);
+  // NEW: Check if the selected type requires colors based on our mapping
+  const needsColor = !!TYPE_COLORS[type];
 
+  // Reset the color selection when the type changes to prevent submitting invalid combinations
   useEffect(() => {
-    if (!needsColor) setColor('');
-  }, [type, needsColor]);
+    setColor('');
+  }, [type]);
 
   const handlePriceChange = (e) => {
     const rawValue = e.target.value.replace(/\D/g, ''); 
@@ -67,7 +76,7 @@ export default function ListAnItem() {
     additionalImages.forEach(file => formData.append('additional_images', file));
 
     try {
-      await axiosClient.post('/items', formData); // Changed from /items/create
+      await axiosClient.post('/items', formData); 
       setSuccess(true);
       setTimeout(() => navigate('/admin/listings'), 2000);
     } catch (err) {
@@ -131,28 +140,20 @@ export default function ListAnItem() {
                   <option value="Hoà điền">Hoà điền</option>
                 </select>
               </div>
+              
+              {/* NEW: Dynamic Dropdown Options */}
               {needsColor && (
                 <div className="flex flex-col gap-2">
                   <label className="text-[10px] font-bold tracking-widest text-gray-800 uppercase">Color *</label>
                   <select value={color} onChange={(e) => setColor(e.target.value)} required className="w-full border border-gray-200 px-3 py-3 text-sm focus:outline-none">
                     <option value="" disabled>Select color...</option>
-                    <option value="Aqua">Aqua</option>
-                    <option value="Đỏ">Đỏ</option>
-                    <option value="Tím">Tím</option>
-                    <option value="Hẹ">Hẹ</option>
-                    <option value="Đũa">Đũa</option>
-                    <option value="Trắng">Trắng</option>
-                    <option value="Vàng">Vàng</option>
-                    <option value="Xanh thiên thanh">Xanh thiên thanh</option>
-                    <option value="Xanh tiffany">Xanh tiffany</option>
-                    <option value="Hồng bưởi">Hồng bưởi</option>
-                    <option value="Xanh hồng">Xanh hồng</option>
-                    <option value="Trắng hồng">Trắng hồng</option>
-                    <option value="Xanh mạ">Xanh mạ</option>
-                    <option value="Xanh lá">Xanh lá</option>
+                    {TYPE_COLORS[type]?.map((colorOption) => (
+                      <option key={colorOption} value={colorOption}>{colorOption}</option>
+                    ))}
                   </select>
                 </div>
               )}
+              
               <div className="flex flex-col gap-2">
                 <label className="text-[10px] font-bold tracking-widest text-gray-800 uppercase">Size (cm) *</label>
                 <select value={size} onChange={(e) => setSize(e.target.value)} required className="w-full border border-gray-200 px-3 py-3 text-sm focus:outline-none">
@@ -184,7 +185,7 @@ export default function ListAnItem() {
             </div>
 
             <div className="flex flex-col gap-2">
-              <label className="text-[10px] font-bold tracking-widest text-gray-800 uppercase">Additional Images (Up to 10)</label>
+              <label className="text-[10px] font-bold tracking-widest text-gray-800 uppercase">Additional Images (Up to 10 - hold ctrl to upload multiple images)</label>
               <input type="file" accept="image/*" multiple onChange={handleAdditionalImages} className="w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:border-0 file:text-xs file:font-bold file:tracking-widest file:uppercase file:bg-gray-100 file:text-gray-700 hover:file:bg-gray-200" />
               <div className="flex flex-wrap gap-2 mt-2">
                 {additionalImages.map((img, index) => (

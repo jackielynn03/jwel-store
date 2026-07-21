@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Plus, Search, Pencil } from 'lucide-react';
+import { Plus, Search, Pencil, Trash2 } from 'lucide-react';
 import axiosClient, { BASE_URL } from '../../api/axiosClient';
 
 export default function ListingManagement() {
@@ -11,7 +11,6 @@ export default function ListingManagement() {
   useEffect(() => {
     const fetchListings = async () => {
       try {
-        // FIX: Added ?limit=1000 to fetch the full inventory for client-side search
         const response = await axiosClient.get('/items?limit=1000');
         const safeData = Array.isArray(response.data) ? response.data : (response.data?.data || []);
         setListings(safeData);
@@ -23,6 +22,22 @@ export default function ListingManagement() {
     };
     fetchListings();
   }, []);
+
+  // NEW: Delete Handler with confirmation
+  const handleDelete = async (e, id, title) => {
+    e.preventDefault(); 
+    e.stopPropagation();
+
+    if (window.confirm(`Are you sure you want to delete "${title}"?\nThis action cannot be undone.`)) {
+      try {
+        await axiosClient.delete(`/items/${id}`);
+        setListings(prev => prev.filter(item => item.id !== id));
+      } catch (error) {
+        console.error("Delete failed", error);
+        alert("Failed to delete the listing.");
+      }
+    }
+  };
 
   const filteredListings = listings.filter(item => {
     const search = searchTerm.toLowerCase();
@@ -72,13 +87,24 @@ export default function ListingManagement() {
             {filteredListings.map((item) => (
               <div key={item.id} className="group bg-white border border-gray-100 p-4 shadow-sm hover:shadow-md transition-all relative block">
                 
-                <Link 
-                  to={`/admin/edit-item/${item.id}`} 
-                  className="absolute top-6 right-6 bg-white/90 p-2 shadow-md hover:bg-black hover:text-white transition-colors z-20 text-gray-600 rounded-full"
-                  title="Edit Listing"
-                >
-                  <Pencil className="w-3.5 h-3.5" />
-                </Link>
+                {/* NEW: Added flex column to stack Edit and Delete buttons */}
+                <div className="absolute top-4 right-4 z-20 flex flex-col gap-2">
+                  <Link 
+                    to={`/admin/edit-item/${item.id}`} 
+                    className="bg-white/90 p-2 shadow-sm border border-gray-100 hover:bg-black hover:text-white transition-colors text-gray-600 rounded-full"
+                    title="Edit Listing"
+                  >
+                    <Pencil className="w-3.5 h-3.5" />
+                  </Link>
+
+                  <button 
+                    onClick={(e) => handleDelete(e, item.id, item.title)}
+                    className="bg-white/90 p-2 shadow-sm border border-gray-100 hover:bg-red-600 hover:text-white transition-colors text-red-500 rounded-full"
+                    title="Delete Listing"
+                  >
+                    <Trash2 className="w-3.5 h-3.5" />
+                  </button>
+                </div>
 
                 <Link to={`/admin/listings/${item.id}`} className="cursor-pointer block">
                   <div className="aspect-square bg-gray-50 mb-4 overflow-hidden flex items-center justify-center relative">

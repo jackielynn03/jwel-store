@@ -15,6 +15,13 @@ import ListAnItem from './pages/admin/ListAnItem';
 import EditItem from './pages/admin/EditItem';
 import AdminListingDetail from './pages/admin/AdminListingDetail';
 import { ShopProvider } from './context/ShopContext';
+import Checkout from './pages/Checkout';
+
+// --- NEW STATIC PAGES IMPORTS ---
+import CustomerCare from './pages/CustomerCare';
+import Policies from './pages/Policies';
+import Social from './pages/Social';
+import Contact from './pages/Contact';
 
 function Layout() {
   const location = useLocation();
@@ -33,7 +40,15 @@ function Layout() {
           <Route path="/product/:id" element={<ProductDetail />} />
           <Route path="/size-guide" element={<SizeGuide />} />
           <Route path="/profile" element={<Profile />} />
+          <Route path="/checkout" element={<Checkout />} />
           
+          {/* --- NEW STATIC PAGES ROUTES --- */}
+          <Route path="/customer-care" element={<CustomerCare />} />
+          <Route path="/policies" element={<Policies />} />
+          <Route path="/social" element={<Social />} />
+          <Route path="/contact" element={<Contact />} />
+          
+          {/* Protected Admin Routes */}
           <Route path="/admin/listings" element={<AdminRoute><ListingManagement /></AdminRoute>} />
           <Route path="/admin/list-item" element={<AdminRoute><ListAnItem /></AdminRoute>} />
           <Route path="/admin/edit-item/:id" element={<AdminRoute><EditItem /></AdminRoute>} />

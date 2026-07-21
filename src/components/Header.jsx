@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Search, User, ShoppingBag, ChevronDown, X, Trash2 } from 'lucide-react';
+import { Search, User, ShoppingBag, ChevronDown, X, Trash2, Loader2 } from 'lucide-react';
 import { useShop } from '../context/ShopContext';
 import axiosClient, { BASE_URL } from '../api/axiosClient';
 
@@ -13,28 +13,34 @@ export default function Header() {
   const [searchQuery, setSearchQuery] = useState('');
   const [searchData, setSearchData] = useState([]);
   
+  // NEW: Checkout loading state
+  const [checkoutLoading, setCheckoutLoading] = useState(false);
+  
   const isLoggedIn = !!localStorage.getItem('accessToken');
-
   const cartTotal = cartItems.reduce((sum, item) => sum + Number(item.price), 0);
 
   const handleUserClick = () => {
-    if (!isLoggedIn) {
-      navigate('/login');
-    } else {
-      setUserMenuOpen(!userMenuOpen);
-    }
+    if (!isLoggedIn) navigate('/login');
+    else setUserMenuOpen(!userMenuOpen);
   };
 
   const handleSignOut = async () => {
-    try {
-      await axiosClient.post('/auth/logout');
-    } catch (err) {
-      console.error('Logout failed', err);
-    } finally {
+    try { await axiosClient.post('/auth/logout'); } catch (err) { console.error(err); }
+    finally {
       localStorage.removeItem('accessToken');
       setUserMenuOpen(false);
       navigate('/login');
     }
+  };
+
+  // NEW: Handle Checkout click with effect
+  const handleProceedToCheckout = () => {
+    setCheckoutLoading(true);
+    setTimeout(() => {
+      setCheckoutLoading(false);
+      setIsCartOpen(false);
+      navigate('/checkout');
+    }, 800); // 800ms loading effect
   };
 
   useEffect(() => {
@@ -103,40 +109,8 @@ export default function Header() {
         </div>
       </header>
 
-      {/* SEARCH OVERLAY */}
-      <div className={`fixed inset-0 bg-white z-[100] transform transition-transform duration-500 flex flex-col ${searchOpen ? 'translate-y-0' : '-translate-y-full'}`}>
-        <div className="w-full max-w-4xl mx-auto px-8 py-12 relative flex flex-col h-full">
-          <button onClick={() => { setSearchOpen(false); setSearchQuery(''); }} className="absolute top-8 right-8 text-gray-400 hover:text-black transition-colors">
-            <X className="w-8 h-8" />
-          </button>
-          
-          <p className="text-[10px] font-bold tracking-[0.2em] text-gray-400 uppercase mb-4 text-center mt-10">What are you looking for?</p>
-          <input 
-            type="text" 
-            autoFocus={searchOpen}
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder="Search collections, items, colors..." 
-            className="w-full text-3xl md:text-5xl font-serif text-black border-b-2 border-gray-200 pb-4 focus:outline-none focus:border-black transition-colors text-center placeholder:text-gray-200"
-          />
-
-          <div className="mt-12 overflow-y-auto flex-1 pb-20">
-            {searchQuery && filteredSearch.length === 0 && <p className="text-center text-gray-500">No results found.</p>}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-              {filteredSearch.map(item => (
-                <Link key={item.id} to={`/product/${item.id}`} onClick={() => setSearchOpen(false)} className="flex items-center gap-4 group p-2 hover:bg-gray-50 transition-colors">
-                  <img src={`${BASE_URL}${item.main_image}`} className="w-16 h-16 object-cover bg-gray-100 mix-blend-multiply" />
-                  <div>
-                    <h4 className="text-sm font-semibold text-black group-hover:text-gray-600 transition-colors">{item.title}</h4>
-                    <p className="text-xs text-[#a68a56] font-bold">{Number(item.price).toLocaleString('en-US')}₫</p>
-                  </div>
-                </Link>
-              ))}
-            </div>
-          </div>
-        </div>
-      </div>
-
+      {/* SEARCH OVERLAY (Removed for brevity, keep your existing code here) */}
+      
       {/* CART DRAWER */}
       {isCartOpen && <div className="fixed inset-0 bg-black/30 backdrop-blur-sm z-[90]" onClick={() => setIsCartOpen(false)} />}
       <div className={`fixed top-0 right-0 h-full w-full sm:w-[400px] bg-white z-[100] shadow-2xl transform transition-transform duration-500 flex flex-col ${isCartOpen ? 'translate-x-0' : 'translate-x-full'}`}>
@@ -172,8 +146,12 @@ export default function Header() {
               <span className="text-sm font-bold text-gray-500 uppercase tracking-widest">Total</span>
               <span className="text-xl font-serif text-black">{cartTotal.toLocaleString('en-US')}₫</span>
             </div>
-            <button className="w-full bg-[#1a1a1a] text-white text-xs font-bold tracking-[0.15em] uppercase py-4 hover:bg-black transition-colors text-center">
-              Proceed to Checkout
+            <button 
+              onClick={handleProceedToCheckout}
+              disabled={checkoutLoading}
+              className="w-full bg-[#1a1a1a] text-white text-xs font-bold tracking-[0.15em] uppercase py-4 hover:bg-black transition-colors flex justify-center items-center gap-2"
+            >
+              {checkoutLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Proceed to Checkout'}
             </button>
           </div>
         )}

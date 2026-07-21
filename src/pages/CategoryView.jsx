@@ -1,6 +1,6 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { Link, useParams } from 'react-router-dom';
-import { ArrowLeft, Filter, Check, ChevronDown } from 'lucide-react';
+import { ArrowLeft, Filter, Check, ChevronDown, ChevronLeft, ChevronRight } from 'lucide-react';
 import axiosClient, { BASE_URL } from '../api/axiosClient';
 
 const VONG_TAY_TYPES = [
@@ -21,16 +21,20 @@ export default function CategoryView() {
   
   const [activeType, setActiveType] = useState('All');
   const [activeColor, setActiveColor] = useState('All');
+  
+  // NEW: Pagination State
+  const [currentPage, setCurrentPage] = useState(1);
+  const ITEMS_PER_PAGE = 9;
 
   useEffect(() => {
     setActiveType('All');
     setActiveColor('All');
+    setCurrentPage(1);
     window.scrollTo({ top: 0, behavior: 'smooth' });
 
     const fetchCategoryProducts = async () => {
       setLoading(true);
       try {
-        // FIX: Added ?limit=1000 to fetch full inventory for client-side filtering
         const response = await axiosClient.get('/items?limit=1000');
         const safeData = Array.isArray(response.data) ? response.data : (response.data?.data || []);
         const filtered = safeData.filter(item => item.category === categoryName);
@@ -43,6 +47,11 @@ export default function CategoryView() {
     };
     fetchCategoryProducts();
   }, [categoryName]);
+
+  // Reset to page 1 whenever filters change
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [activeType, activeColor]);
 
   const otherCategoryFilters = useMemo(() => {
     if (categoryName === 'Vòng Tay') return [];
@@ -60,6 +69,13 @@ export default function CategoryView() {
     }
     return result;
   }, [products, activeType, activeColor]);
+
+  // NEW: Calculate paginated slice
+  const totalPages = Math.ceil(filteredProducts.length / ITEMS_PER_PAGE);
+  const paginatedProducts = filteredProducts.slice(
+    (currentPage - 1) * ITEMS_PER_PAGE, 
+    currentPage * ITEMS_PER_PAGE
+  );
 
   return (
     <div className="bg-gray-50/50 min-h-full py-12">
@@ -160,23 +176,62 @@ export default function CategoryView() {
           <div className="flex-1 w-full">
             {loading ? (
               <div className="py-20 text-center text-sm tracking-widest text-gray-400 uppercase">Loading Collection...</div>
-            ) : filteredProducts.length > 0 ? (
-              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-8">
-                {filteredProducts.map((product) => (
-                  <Link to={`/product/${product.id}`} key={product.id} className="group bg-white border border-gray-100 p-4 rounded-sm shadow-sm hover:shadow-md transition duration-300 cursor-pointer block">
-                    <div className="bg-gray-50 aspect-square mb-4 overflow-hidden flex items-center justify-center p-4 relative">
-                      <img src={`${BASE_URL}${product.main_image}`} alt={product.title} className="w-full h-full object-contain mix-blend-multiply group-hover:scale-105 transition duration-500" />
-                      <span className="absolute top-2 left-2 bg-white/90 text-gray-800 text-[10px] font-bold px-2 py-0.5 tracking-wider uppercase rounded-sm shadow-sm">
-                        {product.attributes?.color || product.attributes?.type || product.title}
-                      </span>
+            ) : paginatedProducts.length > 0 ? (
+              <>
+                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-8">
+                  {paginatedProducts.map((product) => (
+                    <Link to={`/product/${product.id}`} key={product.id} className="group bg-white border border-gray-100 p-4 rounded-sm shadow-sm hover:shadow-md transition duration-300 cursor-pointer block">
+                      <div className="bg-gray-50 aspect-square mb-4 overflow-hidden flex items-center justify-center p-4 relative">
+                        <img src={`${BASE_URL}${product.main_image}`} alt={product.title} className="w-full h-full object-contain mix-blend-multiply group-hover:scale-105 transition duration-500" />
+                        <span className="absolute top-2 left-2 bg-white/90 text-gray-800 text-[10px] font-bold px-2 py-0.5 tracking-wider uppercase rounded-sm shadow-sm">
+                          {product.attributes?.color || product.attributes?.type || product.title}
+                        </span>
+                      </div>
+                      <div className="text-center mt-2">
+                        <h4 className="text-sm font-semibold mb-1 group-hover:text-gray-600 transition-colors line-clamp-1">{product.title}</h4>
+                        <p className="text-sm text-[#a68a56] font-bold">{Number(product.price).toLocaleString('en-US')}₫</p>
+                      </div>
+                    </Link>
+                  ))}
+                </div>
+
+                {/* NEW: Pagination Controls */}
+                {totalPages > 1 && (
+                  <div className="flex justify-center items-center gap-4 mt-16 pt-8 border-t border-gray-200">
+                    <button 
+                      onClick={() => { setCurrentPage(p => Math.max(1, p - 1)); window.scrollTo({ top: 0, behavior: 'smooth' }); }}
+                      disabled={currentPage === 1}
+                      className="p-2 disabled:opacity-30 hover:bg-gray-100 rounded-full transition-colors"
+                    >
+                      <ChevronLeft className="w-5 h-5 text-gray-800" />
+                    </button>
+                    
+                    <div className="flex items-center gap-2">
+                      {Array.from({ length: totalPages }, (_, i) => i + 1).map(page => (
+                        <button
+                          key={page}
+                          onClick={() => { setCurrentPage(page); window.scrollTo({ top: 0, behavior: 'smooth' }); }}
+                          className={`w-8 h-8 flex items-center justify-center rounded-full text-[11px] font-bold transition-colors ${
+                            currentPage === page 
+                              ? 'bg-black text-white' 
+                              : 'text-gray-500 hover:bg-gray-100 hover:text-black'
+                          }`}
+                        >
+                          {page}
+                        </button>
+                      ))}
                     </div>
-                    <div className="text-center mt-2">
-                      <h4 className="text-sm font-semibold mb-1 group-hover:text-gray-600 transition-colors line-clamp-1">{product.title}</h4>
-                      <p className="text-sm text-[#a68a56] font-bold">{Number(product.price).toLocaleString('en-US')}₫</p>
-                    </div>
-                  </Link>
-                ))}
-              </div>
+                    
+                    <button 
+                      onClick={() => { setCurrentPage(p => Math.min(totalPages, p + 1)); window.scrollTo({ top: 0, behavior: 'smooth' }); }}
+                      disabled={currentPage === totalPages}
+                      className="p-2 disabled:opacity-30 hover:bg-gray-100 rounded-full transition-colors"
+                    >
+                      <ChevronRight className="w-5 h-5 text-gray-800" />
+                    </button>
+                  </div>
+                )}
+              </>
             ) : (
               <div className="bg-white border border-gray-200 py-20 text-center rounded-sm shadow-sm">
                 <p className="text-gray-400 text-sm font-medium">No products found matching this filter combination.</p>

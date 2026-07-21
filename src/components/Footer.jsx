@@ -1,4 +1,5 @@
 import React from 'react';
+import { Link } from 'react-router-dom';
 
 export default function Footer() {
   return (
@@ -18,14 +19,15 @@ export default function Footer() {
         </form>
 
         <div className="flex flex-wrap justify-center gap-8 text-[11px] tracking-widest text-gray-400 mb-8 uppercase">
-          <a href="#" className="hover:text-white transition">Customer Care</a>
-          <a href="#" className="hover:text-white transition">Policies</a>
-          <a href="#" className="hover:text-white transition">Social</a>
-          <a href="#" className="hover:text-white transition">Contact</a>
+          {/* UPDATED: Converted simple anchor tags to Link components */}
+          <Link to="/customer-care" className="hover:text-white transition">Customer Care</Link>
+          <Link to="/policies" className="hover:text-white transition">Policies</Link>
+          <Link to="/social" className="hover:text-white transition">Social</Link>
+          <Link to="/contact" className="hover:text-white transition">Contact</Link>
         </div>
 
         <p className="text-[10px] text-gray-500 tracking-wider">
-          © 2024 AURORA JEWELRY & PIERCINGS ALL RIGHTS RESERVED.
+          © 2026 AURORA JEWELRY & PIERCINGS ALL RIGHTS RESERVED.
         </p>
       </div>
     </footer>

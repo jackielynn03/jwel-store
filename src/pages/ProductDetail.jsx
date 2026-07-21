@@ -9,12 +9,13 @@ import { useShop } from '../context/ShopContext';
 
 export default function ProductDetail() {
   const { id } = useParams();
-  const { addToCart } = useShop(); 
+  const { addToCart, cartItems } = useShop(); 
   
   const [product, setProduct] = useState(null);
   const [trendingProducts, setTrendingProducts] = useState([]);
   const [mainImage, setMainImage] = useState('');
   const [loading, setLoading] = useState(true);
+  const isAlreadyInCart = product ? cartItems.some(item => item.id === product.id) : false;
   
   const [isAdding, setIsAdding] = useState(false);
   const [isAdded, setIsAdded] = useState(false);
@@ -32,7 +33,8 @@ export default function ProductDetail() {
         setMainImage(`${BASE_URL}${prodRes.data.main_image}`);
 
         const itemsRes = await axiosClient.get('/items');
-        const recs = itemsRes.data.data.filter(p => p.id !== Number(id)).slice(0, 4);
+        const safeData = Array.isArray(itemsRes.data) ? itemsRes.data : (itemsRes.data?.data || []);
+        const recs = safeData.filter(p => p.id !== Number(id)).slice(0, 4);
         setTrendingProducts(recs);
       } catch (error) {
         console.error("Failed to load product", error);
@@ -62,7 +64,8 @@ export default function ProductDetail() {
         price: product.price,
         image: `${BASE_URL}${product.main_image}`,
         color: product.attributes?.color,
-        size: product.attributes?.size
+        size: product.attributes?.size,
+        type: product.attributes?.type
       });
       
       setIsAdding(false);
@@ -134,20 +137,25 @@ export default function ProductDetail() {
             {hasSize && (
               <div className="mb-8">
                 <div className="flex justify-between items-center mb-4">
-                  <span className="text-[10px] font-bold tracking-widest text-black uppercase">Color & Size</span>
+                  <span className="text-[10px] font-bold tracking-widest text-black uppercase">Type, Color & Size</span>
                   <Link to="/size-guide" className="text-[10px] font-bold tracking-widest text-gray-500 underline decoration-1 underline-offset-4 hover:text-black uppercase transition-colors">
                     Size Guide
                   </Link>
                 </div>
                 
-                <div className="grid grid-cols-2 gap-4 border border-gray-100 p-4">
+                {/* NEW: 3 Column Grid for Type, Color, and Size */}
+                <div className="grid grid-cols-3 gap-4 border border-gray-100 p-4">
+                  <div>
+                    <span className="text-[10px] font-bold tracking-widest text-gray-400 uppercase block mb-1">Type</span>
+                    <span className="text-sm font-semibold text-black">{product.attributes?.type || 'N/A'}</span>
+                  </div>
                   <div>
                     <span className="text-[10px] font-bold tracking-widest text-gray-400 uppercase block mb-1">Color</span>
                     <span className="text-sm font-semibold text-black">{product.attributes?.color || 'N/A'}</span>
                   </div>
                   <div>
                     <span className="text-[10px] font-bold tracking-widest text-gray-400 uppercase block mb-1">Size (cm)</span>
-                    <span className="text-sm font-semibold text-black">{product.attributes?.size}</span>
+                    <span className="text-sm font-semibold text-black">{product.attributes?.size || 'N/A'}</span>
                   </div>
                 </div>
               </div>
@@ -155,15 +163,17 @@ export default function ProductDetail() {
 
             <button 
               onClick={handleAddToCart}
-              disabled={isAdding || isAdded}
+              disabled={isAdding || isAdded || isAlreadyInCart}
               className={`w-full text-xs font-bold tracking-[0.15em] uppercase py-4 transition-all duration-300 flex justify-center items-center gap-2 group
-                ${isAdded ? 'bg-green-600 text-white hover:bg-green-700' : 'bg-[#1a1a1a] text-white hover:bg-black'}
+                ${isAdded || isAlreadyInCart ? 'bg-green-600 text-white hover:bg-green-700 cursor-not-allowed' : 'bg-[#1a1a1a] text-white hover:bg-black'}
               `}
             >
               {isAdding ? (
                 <><Loader2 className="w-4 h-4 animate-spin" /> ADDING...</>
               ) : isAdded ? (
                 <><Check className="w-4 h-4" /> ADDED TO CART</>
+              ) : isAlreadyInCart ? (
+                <><Check className="w-4 h-4" /> ALREADY IN CART</>
               ) : (
                 <>ADD TO CART <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" /></>
               )}
@@ -200,44 +210,35 @@ export default function ProductDetail() {
       {/* Recommended & FAQ Section */}
       <section className="py-16 px-8 max-w-7xl mx-auto border-t border-gray-100">
         
-        {/* --- 1. THE GUARANTEE BOX --- */}
         <div className="bg-[#f2f2f2] rounded-xl p-8 mb-20 shadow-sm border border-gray-200">
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-y-8 gap-x-6">
-            
             <div className="flex items-center gap-4">
               <RefreshCcw className="w-8 h-8 text-gray-500 stroke-[1.5]" />
               <span className="text-sm font-medium text-gray-700">Hoàn tiền nếu chưa<br/>hài lòng</span>
             </div>
-            
             <div className="flex items-center gap-4">
               <Package className="w-8 h-8 text-gray-500 stroke-[1.5]" />
               <span className="text-sm font-medium text-gray-700">10 ngày đổi trả tận<br/>nơi</span>
             </div>
-            
             <div className="flex items-center gap-4">
               <Award className="w-8 h-8 text-gray-500 stroke-[1.5]" />
               <span className="text-sm font-medium text-gray-700">Cam kết chất lượng<br/>sản phẩm</span>
             </div>
-            
             <div className="flex items-center gap-4">
               <Truck className="w-8 h-8 text-gray-500 stroke-[1.5]" />
               <span className="text-sm font-medium text-gray-700">Free Ship toàn quốc<br/>từ 498k</span>
             </div>
-            
             <div className="flex items-center gap-4">
               <ClipboardCheck className="w-8 h-8 text-gray-500 stroke-[1.5]" />
               <span className="text-sm font-medium text-gray-700">Kiểm tra trước khi<br/>thanh toán</span>
             </div>
-            
             <div className="flex items-center gap-4">
               <ShieldCheck className="w-8 h-8 text-gray-500 stroke-[1.5]" />
               <span className="text-sm font-medium text-gray-700">Bảo hành 12 tháng<br/>tận nơi</span>
             </div>
-
           </div>
         </div>
 
-        {/* --- "YOU MAY ALSO LIKE" --- */}
         <div className="flex justify-between items-end mb-10">
           <h2 className="text-2xl font-serif text-black uppercase">You May Also Like</h2>
         </div>
@@ -261,7 +262,6 @@ export default function ProductDetail() {
           ))}
         </div>
 
-        {/* --- 2. FAQ SECTION --- */}
         <div className="max-w-4xl mx-auto pt-8">
           <div className="flex items-center justify-center gap-4 mb-10">
             <div className="h-px bg-gray-300 flex-1"></div>
@@ -272,7 +272,6 @@ export default function ProductDetail() {
           </div>
 
           <div className="flex flex-col">
-            
             <details className="group py-5 border-b border-gray-200 cursor-pointer">
               <summary className="flex justify-between items-center text-sm font-medium text-gray-800 list-none outline-none">
                 Trang sức Aurora khác gì so với các sản phẩm phổ thông trên thị trường?
@@ -282,7 +281,6 @@ export default function ProductDetail() {
                 Tất cả sản phẩm của Aurora đều được chế tác từ những chất liệu cao cấp và tuyển chọn kỹ lưỡng. Chúng tôi cam kết về độ tinh xảo trong từng chi tiết, mang đến trải nghiệm sang trọng và độ bền vượt trội so với các sản phẩm đại trà.
               </div>
             </details>
-
             <details className="group py-5 border-b border-gray-200 cursor-pointer">
               <summary className="flex justify-between items-center text-sm font-medium text-gray-800 list-none outline-none">
                 Trang sức có bị xỉn màu sau khi đeo một thời gian không?
@@ -292,7 +290,6 @@ export default function ProductDetail() {
                 Tùy thuộc vào cơ địa và cách bảo quản, trang sức có thể giảm độ sáng bóng tự nhiên. Tuy nhiên, Aurora cung cấp dịch vụ đánh bóng và làm mới miễn phí để sản phẩm của bạn luôn rạng rỡ như ngày đầu.
               </div>
             </details>
-
             <details className="group py-5 border-b border-gray-200 cursor-pointer">
               <summary className="flex justify-between items-center text-sm font-medium text-gray-800 list-none outline-none">
                 Tôi có thể đổi sang mẫu khác nếu sản phẩm chưa thật sự phù hợp không?
@@ -302,7 +299,6 @@ export default function ProductDetail() {
                 Hoàn toàn có thể. Aurora hỗ trợ chính sách đổi trả tận nơi trong vòng 10 ngày đầu tiên nếu sản phẩm chưa qua sử dụng và còn nguyên vẹn tem mác, hộp đựng.
               </div>
             </details>
-
             <details className="group py-5 border-b border-gray-200 cursor-pointer">
               <summary className="flex justify-between items-center text-sm font-medium text-gray-800 list-none outline-none">
                 Trang sức có được bảo hành và chăm sóc sau khi mua không?
@@ -312,7 +308,6 @@ export default function ProductDetail() {
                 Có. Chúng tôi cung cấp chính sách bảo hành 12 tháng tận nơi cho tất cả các lỗi kỹ thuật từ nhà sản xuất, cùng dịch vụ làm sạch trọn đời.
               </div>
             </details>
-
             <details className="group py-5 border-b border-gray-200 cursor-pointer">
               <summary className="flex justify-between items-center text-sm font-medium text-gray-800 list-none outline-none">
                 Aurora có hỗ trợ khắc tên hoặc đóng gói quà tặng cá nhân hóa không?
@@ -322,7 +317,6 @@ export default function ProductDetail() {
                 Dịch vụ đóng gói quà tặng cao cấp được cung cấp miễn phí kèm theo thiệp viết tay. Đối với dịch vụ khắc tên, quý khách vui lòng liên hệ bộ phận CSKH để được tư vấn các mẫu thiết kế phù hợp.
               </div>
             </details>
-
             <details className="group py-5 border-b border-gray-200 cursor-pointer">
               <summary className="flex justify-between items-center text-sm font-medium text-gray-800 list-none outline-none">
                 Tôi sẽ nhận được sản phẩm trong bao lâu sau khi đặt hàng?
@@ -332,7 +326,6 @@ export default function ProductDetail() {
                 Đối với khu vực nội thành, thời gian giao hàng từ 1-2 ngày làm việc. Các tỉnh thành khác sẽ mất từ 3-5 ngày làm việc thông qua dịch vụ chuyển phát nhanh bảo hiểm toàn giá trị.
               </div>
             </details>
-
           </div>
         </div>
 
