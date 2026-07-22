@@ -1,6 +1,7 @@
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const pool = require('../db');
+const logger = require('../utils/logger'); // Integrated Structured Logger
 
 // --- REGISTER ---
 exports.register = async (req, res) => {
@@ -22,7 +23,7 @@ exports.register = async (req, res) => {
 
     res.status(201).json({ message: 'User registered successfully', user: newUser.rows[0] });
   } catch (error) {
-    console.error(error);
+    logger.error('Registration error', { error: error.message });
     res.status(500).json({ message: 'Server error' });
   }
 };
@@ -50,6 +51,15 @@ exports.login = async (req, res) => {
     const accessToken = jwt.sign(payload, process.env.JWT_ACCESS_SECRET, { expiresIn: process.env.JWT_ACCESS_EXPIRES_IN });
     const refreshToken = jwt.sign(payload, process.env.JWT_REFRESH_SECRET, { expiresIn: process.env.JWT_REFRESH_EXPIRES_IN });
 
+    // Set Access Token Cookie
+    res.cookie('accessToken', accessToken, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'Strict',
+      maxAge: 15 * 60 * 1000 // 15 Minutes
+    });
+
+    // Set Refresh Token Cookie
     res.cookie('refreshToken', refreshToken, {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
@@ -58,11 +68,10 @@ exports.login = async (req, res) => {
     });
 
     res.status(200).json({
-      accessToken,
       user: { id: user.user_id, username: user.username, email: user.email, role: user.role }
     });
   } catch (error) {
-    console.error(error);
+    logger.error('Login error', { error: error.message });
     res.status(500).json({ message: 'Server error' });
   }
 };
@@ -84,9 +93,17 @@ exports.refreshToken = (req, res) => {
       { expiresIn: process.env.JWT_ACCESS_EXPIRES_IN }
     );
 
-    res.status(200).json({ accessToken: newAccessToken });
+    // Issue new Access Token Cookie
+    res.cookie('accessToken', newAccessToken, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'Strict',
+      maxAge: 15 * 60 * 1000 
+    });
+
+    res.status(200).json({ message: 'Token refreshed successfully' });
   } catch (error) {
-    console.error(error);
+    logger.error('Refresh token error', { error: error.message });
     return res.status(403).json({ message: 'Invalid or expired refresh token. Please log in again.' });
   }
 };
@@ -94,9 +111,9 @@ exports.refreshToken = (req, res) => {
 // --- GET PROFILE ---
 exports.getProfile = async (req, res) => {
   try {
-    // req.user.id comes from the verifyToken middleware
     const userResult = await pool.query(
-      'SELECT username, email, full_name, address FROM users WHERE user_id = $1',
+      // FIX: Added 'role' to the SELECT statement so the frontend recognizes admins on refresh
+      'SELECT username, email, full_name, address, role FROM users WHERE user_id = $1',
       [req.user.id]
     );
 
@@ -106,7 +123,7 @@ exports.getProfile = async (req, res) => {
 
     res.status(200).json(userResult.rows[0]);
   } catch (error) {
-    console.error(error);
+    logger.error('Get profile error', { error: error.message });
     res.status(500).json({ message: 'Server error' });
   }
 };
@@ -117,7 +134,6 @@ exports.updateProfile = async (req, res) => {
     const { full_name, email, address } = req.body;
     const userId = req.user.id;
 
-    // Optional: Check if the new email belongs to someone else
     if (email) {
       const emailCheck = await pool.query(
         'SELECT user_id FROM users WHERE email = $1 AND user_id != $2', 
@@ -128,31 +144,33 @@ exports.updateProfile = async (req, res) => {
       }
     }
 
-    // Update the user in the database (Username is locked, but full_name, email, and address can be changed)
     const updateQuery = `
       UPDATE users 
       SET full_name = $1, email = $2, address = $3 
       WHERE user_id = $4 
-      RETURNING username, email, full_name, address
+      -- FIX: Added 'role' to RETURNING so frontend state stays intact after profile updates
+      RETURNING username, email, full_name, address, role 
     `;
     
     const updatedUser = await pool.query(updateQuery, [full_name, email, address, userId]);
     
     res.status(200).json(updatedUser.rows[0]);
   } catch (error) {
-    console.error(error);
+    logger.error('Update profile error', { error: error.message });
     res.status(500).json({ message: 'Server error' });
   }
 };
 
 // --- LOGOUT ---
 exports.logout = (req, res) => {
-  // Clear the HTTP-only refresh token cookie
-  res.clearCookie('refreshToken', {
+  const cookieOptions = {
     httpOnly: true,
     secure: process.env.NODE_ENV === 'production',
     sameSite: 'Strict'
-  });
+  };
+  
+  res.clearCookie('accessToken', cookieOptions);
+  res.clearCookie('refreshToken', cookieOptions);
   
   res.status(200).json({ message: 'Logged out successfully' });
 };

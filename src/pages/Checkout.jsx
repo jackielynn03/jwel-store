@@ -6,10 +6,9 @@ import axiosClient from '../api/axiosClient';
 
 export default function Checkout() {
   const navigate = useNavigate();
-  const { cartItems } = useShop();
+  const { cartItems, clearCart } = useShop(); 
   
-  // You will generate this URL in Step 5
-  const GOOGLE_SCRIPT_URL = import.meta.env.VITE_GOOGLE_SCRIPT_URL;
+  // 1. REMOVED the GOOGLE_SCRIPT_URL environment variable
 
   const [formData, setFormData] = useState({ fullName: '', email: '', phone: '', address: '' });
   const [loading, setLoading] = useState(false);
@@ -17,7 +16,6 @@ export default function Checkout() {
 
   const cartTotal = cartItems.reduce((sum, item) => sum + Number(item.price), 0);
 
-  // Autofill data if the user is logged in
   useEffect(() => {
     if (cartItems.length === 0) navigate('/');
     
@@ -35,22 +33,18 @@ export default function Checkout() {
       }
     };
     
-    if (localStorage.getItem('accessToken')) fetchProfile();
+    fetchProfile(); 
   }, [cartItems, navigate]);
 
   const handleInputChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
   };
 
-const handleCheckoutSubmit = async (e) => {
+  const handleCheckoutSubmit = async (e) => {
     e.preventDefault();
     if (cartItems.length === 0) return;
 
-    // NEW: Fail-safe to check if the .env variable loaded
-    if (!GOOGLE_SCRIPT_URL) {
-      alert("Error: Google Script URL is missing! Please restart your terminal.");
-      return;
-    }
+    // 2. REMOVED the fail-safe alert checking for GOOGLE_SCRIPT_URL
 
     setLoading(true);
 
@@ -61,8 +55,6 @@ const handleCheckoutSubmit = async (e) => {
       email: formData.email,
       items: cartItems.map(item => ({
         id: item.id,
-        name: item.name,
-        category: item.category,
         size: item.size || 'N/A',
         type: item.type || 'N/A',
         color: item.color || 'N/A'
@@ -70,16 +62,14 @@ const handleCheckoutSubmit = async (e) => {
     };
 
     try {
-      await fetch(GOOGLE_SCRIPT_URL, {
-        method: 'POST',
-        mode: 'no-cors', 
-        headers: {
-          'Content-Type': 'text/plain;charset=utf-8',
-        },
-        body: JSON.stringify(orderData)
-      });
+      // Send data to the Node backend. The backend handles the Google Webhook!
+      await axiosClient.post('/items/checkout', orderData);
 
       setSuccess(true);
+      
+      // Clear the cart on successful checkout
+      if (clearCart) clearCart(); 
+      
       setTimeout(() => {
         window.location.href = '/'; 
       }, 3000);
@@ -112,7 +102,6 @@ const handleCheckoutSubmit = async (e) => {
 
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-12">
           
-          {/* Form Section */}
           <div className="lg:col-span-7">
             <div className="bg-white p-8 border border-gray-100 shadow-sm">
               <h2 className="text-xs font-bold tracking-widest uppercase text-black mb-6 border-b border-gray-100 pb-4">Shipping Information</h2>
@@ -141,7 +130,6 @@ const handleCheckoutSubmit = async (e) => {
             </div>
           </div>
 
-          {/* Order Summary */}
           <div className="lg:col-span-5">
             <div className="bg-white p-8 border border-gray-100 shadow-sm sticky top-8">
               <h2 className="text-xs font-bold tracking-widest uppercase text-black mb-6 border-b border-gray-100 pb-4">Order Summary</h2>

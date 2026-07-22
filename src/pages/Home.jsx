@@ -28,9 +28,9 @@ export default function Home() {
         <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/20 text-white">
           <h2 className="text-3xl md:text-4xl font-serif tracking-wide mb-2 text-center drop-shadow-md">CURATED ELEGANCE.</h2>
           <h2 className="text-3xl md:text-4xl font-serif tracking-wide mb-8 text-center drop-shadow-md">EXPLORE THE NEW SEASON.</h2>
-          <button className="bg-white text-black text-sm font-bold tracking-widest py-3 px-8 hover:bg-gray-100 transition duration-300 shadow-lg">
+          <Link to="/category/Vòng Tay" className="bg-white text-black text-sm font-bold tracking-widest py-3 px-8 hover:bg-gray-100 transition duration-300 shadow-lg">
             SHOP NOW
-          </button>
+          </Link>
         </div>
       </section>
 

@@ -28,3 +28,17 @@ exports.itemSchema = z.object({
   // Ensure price is a valid numeric string before it hits PostgreSQL
   price: z.string().regex(/^\d+(\.\d{1,2})?$/, "Invalid price format") 
 });
+
+// NEW: Strict Server-Side Checkout Validation
+exports.checkoutSchema = z.object({
+  fullName: z.string().min(1, "Full name is required").max(100),
+  email: z.string().email("Invalid email format"),
+  phone: z.string().min(8, "Phone number is too short").max(20),
+  address: z.string().min(5, "Address is required").max(255),
+  items: z.array(z.object({
+    id: z.number().int().positive("Invalid item ID"),
+    size: z.string().optional().nullable(),
+    type: z.string().optional().nullable(),
+    color: z.string().optional().nullable()
+  })).min(1, "Cart cannot be empty")
+});

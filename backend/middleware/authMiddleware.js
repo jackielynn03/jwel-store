@@ -1,18 +1,16 @@
 const jwt = require('jsonwebtoken');
 
 const verifyToken = (req, res, next) => {
-  const authHeader = req.headers.authorization;
+  // Extract token directly from HTTP-Only cookies
+  const token = req.cookies?.accessToken;
   
-  if (!authHeader || !authHeader.startsWith('Bearer ')) {
-    return res.status(401).json({ message: 'No token provided' });
+  if (!token) {
+    return res.status(401).json({ message: 'Unauthorized! No token provided in cookies.' });
   }
-
-  const token = authHeader.split(' ')[1];
 
   try {
     const decoded = jwt.verify(token, process.env.JWT_ACCESS_SECRET);
     
-    // Explicitly cast ID to string as requested
     req.user = {
       ...decoded,
       id: String(decoded.id) 

@@ -4,6 +4,7 @@ const cookieParser = require('cookie-parser');
 const cors = require('cors');
 const helmet = require('helmet'); 
 const rateLimit = require('express-rate-limit');
+const logger = require('./utils/logger'); // Structured Logger
 
 const app = express();
 
@@ -27,6 +28,13 @@ app.use(cors({
 app.use(express.json());
 app.use(cookieParser());
 
+// General API rate limiter (Moved BEFORE routes to ensure protection)
+const apiLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 200, // Limit each IP to 200 requests per window
+  message: { message: 'Too many requests from this IP, please try again later' }
+});
+app.use('/api', apiLimiter);
 
 // ==========================================
 // 2. MOUNT ROUTES
@@ -48,7 +56,7 @@ app.use('/uploads', express.static('uploads'));
 
 // Global JSON Error Handler
 app.use((err, req, res, next) => {
-  console.error("Global Error Handler caught:", err);
+  logger.error("Global Error Handler caught:", { error: err.message, stack: err.stack });
 
   // Catch Multer file size limits gracefully
   if (err.code === 'LIMIT_FILE_SIZE') {
@@ -63,18 +71,14 @@ app.use((err, req, res, next) => {
   });
 });
 
-// General API rate limiter
-const apiLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 200, // Limit each IP to 200 requests per window
-  message: { message: 'Too many requests from this IP, please try again later' }
-});
-
-// Apply to all /api routes
-app.use('/api', apiLimiter);
+// ==========================================
+// 4. MOUNT ROUTES
+// ==========================================
+const wishlistRoutes = require('./routes/wishlistRoutes');
+app.use('/api/wishlist', wishlistRoutes);
 
 // ==========================================
-// 4. START SERVER
+// 5. START SERVER
 // ==========================================
 const PORT = process.env.PORT || 5000;
-app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
+app.listen(PORT, () => logger.info(`Server running on port ${PORT}`));

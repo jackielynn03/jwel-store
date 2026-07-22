@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Search, User, ShoppingBag, ChevronDown, X, Trash2, Loader2 } from 'lucide-react';
 import { useShop } from '../context/ShopContext';
-import axiosClient, { BASE_URL } from '../api/axiosClient';
+import axiosClient from '../api/axiosClient';
 
 export default function Header() {
   const navigate = useNavigate();
@@ -13,10 +13,18 @@ export default function Header() {
   const [searchQuery, setSearchQuery] = useState('');
   const [searchData, setSearchData] = useState([]);
   
-  // NEW: Checkout loading state
   const [checkoutLoading, setCheckoutLoading] = useState(false);
   
-  const isLoggedIn = !!localStorage.getItem('accessToken');
+  // NEW: Replace localStorage with a state that checks the secure cookie
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
+
+  useEffect(() => {
+    // Ping the backend to see if the secure cookie is valid
+    axiosClient.get('/auth/profile')
+      .then(() => setIsLoggedIn(true))
+      .catch(() => setIsLoggedIn(false));
+  }, []);
+
   const cartTotal = cartItems.reduce((sum, item) => sum + Number(item.price), 0);
 
   const handleUserClick = () => {
@@ -25,22 +33,25 @@ export default function Header() {
   };
 
   const handleSignOut = async () => {
-    try { await axiosClient.post('/auth/logout'); } catch (err) { console.error(err); }
-    finally {
-      localStorage.removeItem('accessToken');
+    try { 
+      await axiosClient.post('/auth/logout'); 
+    } catch (err) { 
+      console.error(err); 
+    } finally {
+      // REMOVED: localStorage.removeItem('accessToken');
+      setIsLoggedIn(false);
       setUserMenuOpen(false);
       navigate('/login');
     }
   };
 
-  // NEW: Handle Checkout click with effect
   const handleProceedToCheckout = () => {
     setCheckoutLoading(true);
     setTimeout(() => {
       setCheckoutLoading(false);
       setIsCartOpen(false);
       navigate('/checkout');
-    }, 800); // 800ms loading effect
+    }, 800);
   };
 
   useEffect(() => {
@@ -67,7 +78,6 @@ export default function Header() {
             </Link>
 
             <div className="flex gap-5 justify-end text-gray-700 w-24 relative">
-              <Search onClick={() => setSearchOpen(true)} className="w-5 h-5 cursor-pointer hover:text-black transition-colors" />
               
               <div className="relative">
                 <User onClick={handleUserClick} className="w-5 h-5 cursor-pointer hover:text-black transition-colors" />

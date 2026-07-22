@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Plus, Search, Pencil, Trash2 } from 'lucide-react';
+import { Plus, Search, Pencil, Trash2, ArrowLeft } from 'lucide-react';
 import axiosClient, { BASE_URL } from '../../api/axiosClient';
 
 export default function ListingManagement() {
@@ -23,7 +23,6 @@ export default function ListingManagement() {
     fetchListings();
   }, []);
 
-  // NEW: Delete Handler with confirmation
   const handleDelete = async (e, id, title) => {
     e.preventDefault(); 
     e.stopPropagation();
@@ -52,6 +51,11 @@ export default function ListingManagement() {
     <div className="min-h-screen bg-[#fafafa] font-sans pb-20">
       <div className="max-w-7xl mx-auto px-8 py-16">
         
+        {/* NEW: Return to Profile Button */}
+        <Link to="/profile" className="inline-flex items-center gap-2 text-[10px] font-bold tracking-widest text-gray-400 hover:text-black transition-colors uppercase mb-8">
+          <ArrowLeft className="w-4 h-4" /> Return to Profile
+        </Link>
+
         <div className="flex flex-col md:flex-row justify-between md:items-end mb-10 border-b border-gray-200 pb-6 gap-6">
           <div>
             <h1 className="text-3xl font-serif text-black uppercase tracking-widest">Listing Management</h1>
@@ -87,7 +91,6 @@ export default function ListingManagement() {
             {filteredListings.map((item) => (
               <div key={item.id} className="group bg-white border border-gray-100 p-4 shadow-sm hover:shadow-md transition-all relative block">
                 
-                {/* NEW: Added flex column to stack Edit and Delete buttons */}
                 <div className="absolute top-4 right-4 z-20 flex flex-col gap-2">
                   <Link 
                     to={`/admin/edit-item/${item.id}`} 

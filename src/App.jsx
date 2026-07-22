@@ -23,6 +23,9 @@ import Policies from './pages/Policies';
 import Social from './pages/Social';
 import Contact from './pages/Contact';
 
+// --- NEW ADMIN ORDER IMPORT ---
+import AdminOrderManagement from './pages/admin/AdminOrderManagement';
+
 function Layout() {
   const location = useLocation();
   const isAuthPage = location.pathname === '/login' || location.pathname === '/register';
@@ -42,7 +45,7 @@ function Layout() {
           <Route path="/profile" element={<Profile />} />
           <Route path="/checkout" element={<Checkout />} />
           
-          {/* --- NEW STATIC PAGES ROUTES --- */}
+          {/* --- STATIC PAGES ROUTES --- */}
           <Route path="/customer-care" element={<CustomerCare />} />
           <Route path="/policies" element={<Policies />} />
           <Route path="/social" element={<Social />} />
@@ -53,6 +56,7 @@ function Layout() {
           <Route path="/admin/list-item" element={<AdminRoute><ListAnItem /></AdminRoute>} />
           <Route path="/admin/edit-item/:id" element={<AdminRoute><EditItem /></AdminRoute>} />
           <Route path="/admin/listings/:id" element={<AdminRoute><AdminListingDetail /></AdminRoute>} />
+          <Route path="/admin/orders" element={<AdminRoute><AdminOrderManagement /></AdminRoute>} />
         </Routes>
       </main>
 

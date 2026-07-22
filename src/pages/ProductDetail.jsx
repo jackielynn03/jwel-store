@@ -1,14 +1,15 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { useParams, Link } from 'react-router-dom';
+import { useParams, Link, useNavigate } from 'react-router-dom';
 import { 
   ChevronDown, ChevronLeft, ChevronRight, ArrowRight, Loader2, Check, 
-  RefreshCcw, Package, Award, Truck, ClipboardCheck, ShieldCheck 
+  RefreshCcw, Package, Award, Truck, ClipboardCheck, ShieldCheck, Heart, ArrowLeft
 } from 'lucide-react';
 import axiosClient, { BASE_URL } from '../api/axiosClient';
 import { useShop } from '../context/ShopContext';
 
 export default function ProductDetail() {
   const { id } = useParams();
+  const navigate = useNavigate();
   const { addToCart, cartItems } = useShop(); 
   
   const [product, setProduct] = useState(null);
@@ -20,6 +21,10 @@ export default function ProductDetail() {
   const [isAdding, setIsAdding] = useState(false);
   const [isAdded, setIsAdded] = useState(false);
   
+  // Wishlist States
+  const [isWishlisted, setIsWishlisted] = useState(false);
+  const [isWishlistLoading, setIsWishlistLoading] = useState(false);
+  
   const scrollRef = useRef(null);
 
   useEffect(() => {
@@ -28,14 +33,27 @@ export default function ProductDetail() {
     const fetchProductData = async () => {
       setLoading(true);
       try {
+        // 1. Fetch Product Data
         const prodRes = await axiosClient.get(`/items/${id}`);
         setProduct(prodRes.data);
         setMainImage(`${BASE_URL}${prodRes.data.main_image}`);
 
+        // 2. Fetch Trending Items
         const itemsRes = await axiosClient.get('/items');
         const safeData = Array.isArray(itemsRes.data) ? itemsRes.data : (itemsRes.data?.data || []);
         const recs = safeData.filter(p => p.id !== Number(id)).slice(0, 4);
         setTrendingProducts(recs);
+
+        // 3. SECURE CHECK: Check if item is in the user's wishlist
+        try {
+          const wishlistRes = await axiosClient.get('/wishlist');
+          // Look through the user's wishlist to see if this specific item ID exists
+          const exists = wishlistRes.data.some(wItem => wItem.id === Number(id));
+          setIsWishlisted(exists);
+        } catch (authErr) {
+          // User is likely not logged in, ignore gracefully
+        }
+
       } catch (error) {
         console.error("Failed to load product", error);
       } finally {
@@ -74,6 +92,34 @@ export default function ProductDetail() {
     }, 600); 
   };
 
+  // --- UPDATED: Secure Backend Wishlist Toggle ---
+  const toggleWishlist = async () => {
+    if (isWishlistLoading) return; // Prevent spam clicking
+
+    // Optimistic UI Update (feels instant to the user)
+    setIsWishlisted(!isWishlisted);
+    setIsWishlistLoading(true);
+
+    try {
+      // Send the request to the database
+      const res = await axiosClient.post('/wishlist/toggle', { item_id: product.id });
+      
+      // Ensure the UI matches the absolute truth from the database
+      setIsWishlisted(res.data.isWishlisted);
+    } catch (err) {
+      // If the request fails (e.g., user is not logged in), revert the heart and alert them
+      setIsWishlisted(!isWishlisted); 
+      if (err.response?.status === 401) {
+        alert("Please log in to save items to your wishlist.");
+        navigate('/login');
+      } else {
+        console.error("Failed to update wishlist");
+      }
+    } finally {
+      setIsWishlistLoading(false);
+    }
+  };
+
   if (loading) return <div className="p-32 text-center text-sm font-bold tracking-widest text-gray-500 uppercase">Loading Product...</div>;
   if (!product) return <div className="p-32 text-center text-lg text-gray-500">Product not found.</div>;
 
@@ -86,7 +132,13 @@ export default function ProductDetail() {
 
   return (
     <div className="bg-white min-h-screen pb-20">
-      <section className="max-w-7xl mx-auto px-8 py-12 md:py-24">
+      <section className="max-w-7xl mx-auto px-8 py-12 md:py-16">
+        
+        {/* Back Button */}
+        <Link to="/" className="inline-flex items-center gap-2 text-[10px] font-bold tracking-widest text-gray-400 hover:text-black transition-colors uppercase mb-8">
+          <ArrowLeft className="w-4 h-4" /> Back to Store
+        </Link>
+
         <div className="grid grid-cols-1 md:grid-cols-12 gap-12">
           
           <div className="md:col-span-7 flex flex-col gap-6">
@@ -120,11 +172,21 @@ export default function ProductDetail() {
           </div>
 
           <div className="md:col-span-5 flex flex-col justify-center">
-            <div className="mb-6 border-b border-gray-100 pb-6">
+            <div className="mb-6 border-b border-gray-100 pb-6 relative">
+              
+              {/* Wishlist Heart Button - Now disabled during loading to prevent API spam */}
+              <button 
+                onClick={toggleWishlist}
+                disabled={isWishlistLoading}
+                className={`absolute top-0 right-0 p-2 transition-colors ${isWishlistLoading ? 'opacity-50 cursor-not-allowed' : 'text-gray-400 hover:text-red-500'}`}
+              >
+                <Heart className={`w-6 h-6 transition-all duration-300 ${isWishlisted ? 'fill-red-500 text-red-500 scale-110' : ''}`} />
+              </button>
+
               <p className="text-[10px] font-bold tracking-[0.2em] text-gray-500 uppercase mb-3">
                 {product.category} Collection
               </p>
-              <h1 className="text-3xl md:text-4xl font-serif text-black mb-4 leading-tight">
+              <h1 className="text-3xl md:text-4xl font-serif text-black mb-4 leading-tight pr-10">
                 {product.title}
               </h1>
               <p className="text-lg font-bold text-[#a68a56]">{Number(product.price).toLocaleString('en-US')}₫</p>
@@ -143,7 +205,6 @@ export default function ProductDetail() {
                   </Link>
                 </div>
                 
-                {/* NEW: 3 Column Grid for Type, Color, and Size */}
                 <div className="grid grid-cols-3 gap-4 border border-gray-100 p-4">
                   <div>
                     <span className="text-[10px] font-bold tracking-widest text-gray-400 uppercase block mb-1">Type</span>

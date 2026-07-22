@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { ArrowRight } from 'lucide-react';
-import axiosClient, { BASE_URL } from '../api/axiosClient';
+import axiosClient from '../api/axiosClient';
 
 export default function Login() {
   const [username, setUsername] = useState('');
@@ -11,22 +11,18 @@ export default function Login() {
 
   const handleLogin = async (e) => {
     e.preventDefault();
-    setError(''); // Clear previous errors
+    setError('');
 
     try {
-      // Send POST request to backend
-      const response = await axiosClient.post('/auth/login', {
+      await axiosClient.post('/auth/login', {
         username,
         password
       });
 
-      // Save the access token to localStorage
-      localStorage.setItem('accessToken', response.data.accessToken);
+      // REMOVED: localStorage.setItem('accessToken', response.data.accessToken);
 
-      // Redirect to the home page
       navigate('/');
     } catch (err) {
-      // Set error message if login fails
       setError(err.response?.data?.message || 'An error occurred during login.');
     }
   };
@@ -48,7 +44,6 @@ export default function Login() {
             <h1 className="text-3xl tracking-[0.2em] font-serif text-black uppercase mb-3">Aurora</h1>
             <p className="text-sm text-gray-500 mb-10">Sign in to your account</p>
             
-            {/* Display error message if it exists */}
             {error && <div className="w-full bg-red-50 text-red-600 text-xs p-3 mb-4 rounded-sm border border-red-100 text-center">{error}</div>}
             
             <form className="w-full flex flex-col gap-6" onSubmit={handleLogin}>
